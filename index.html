@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RESQ-SWARM v4.0 - Next-Gen Tactical Swarm Intelligence</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Leaflet Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Chart.js for Quantum Fusion Waveform -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        /* Tactical Scanlines Effect */
+        .scanline-bg {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+        }
+
+        /* Radar Pulse Animation */
+        @keyframes radar-sweep {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .radar-sweeper {
+            animation: radar-sweep 4s linear infinite;
+            transform-origin: center;
+        }
+
+        /* Thermal Camera Simulation */
+        .thermal-view {
+            background: radial-gradient(circle at 50% 50%, #ff0055 0%, #ff9900 30%, #2b0054 70%, #000000 100%);
+            filter: contrast(180%) hue-rotate(15deg);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 font-mono min-h-screen p-3 scanline-bg flex flex-col justify-between">
+
+    <!-- TOP COMMAND BAR -->
+    <header
+        class="border-b border-sky-900/60 bg-slate-900/80 backdrop-blur p-3 rounded-lg mb-3 flex flex-wrap justify-between items-center shadow-lg shadow-sky-950/40">
+        <div class="flex items-center gap-3">
+            <div class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></div>
+            <div>
+                <h1
+                    class="text-xl font-extrabold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-teal-300 to-emerald-400">
+                    RESQ-SWARM v4.0</h1>
+                <p class="text-[10px] text-slate-400 font-sans">Autonomous Tactical Drone Swarm & Quantum Multi-Sensor
+                    Telemetry System</p>
+            </div>
+        </div>
+
+        <!-- MISSION CONTROLS -->
+        <div class="flex items-center gap-2">
+            <button id="deployBtn"
+                class="bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 text-white font-bold px-4 py-2 rounded text-xs transition cursor-pointer shadow-md shadow-sky-900/50 flex items-center gap-1.5">
+                ⚡ DEPLOY AUTONOMOUS SWARM
+            </button>
+            <button id="resetBtn"
+                class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-3 py-2 rounded text-xs border border-slate-700 transition">
+                🔄 RE-INDEX
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN DASHBOARD LAYOUT -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1">
+
+        <!-- LEFT PANEL: TACTICAL MAP & THERMAL OPTICS (7 Cols) -->
+        <div class="lg:col-span-7 flex flex-col gap-3">
+
+            <!-- SATELLITE MAP WITH A* PATHFINDING -->
+            <div class="bg-slate-900/90 border border-sky-900/50 rounded-lg p-2.5 relative overflow-hidden shadow-xl">
+                <div class="flex justify-between items-center mb-1.5 text-[11px]">
+                    <span class="text-sky-400 font-bold tracking-wider flex items-center gap-1">🌐 LIVE TACTICAL GIS
+                        DIGITAL TWIN</span>
+                    <span id="coordinatesText" class="text-slate-400 font-mono text-[10px]">GRID: 13.0827° N, 80.2707°
+                        E</span>
+                </div>
+
+                <div id="map" class="z-10 shadow-inner"></div>
+
+                <!-- RADAR OVERLAY -->
+                <div class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-10 z-20">
+                    <div class="w-80 h-80 rounded-full border border-sky-400 radar-sweeper border-t-sky-200"></div>
+                </div>
+            </div>
+
+            <!-- LIVE OPTICAL & WAVE SIMULATORS (INNOVATIVE FEATURE) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+                <!-- THERMAL IR SIMULATION STREAM -->
+                <div class="bg-slate-900/90 border border-orange-900/40 rounded-lg p-2.5 flex flex-col justify-between">
+                    <div class="flex justify-between items-center mb-1 text-[10px]">
+                        <span class="text-orange-400 font-bold">📷 D2 THERMAL FEED (FLIR Optics)</span>
+                        <span id="thermalStatus" class="text-slate-500">STANDBY</span>
+                    </div>
+                    <div id="thermalBox"
+                        class="h-28 bg-slate-950 rounded border border-slate-800 flex items-center justify-center relative overflow-hidden">
+                        <span id="thermalPlaceholder" class="text-[10px] text-slate-600">NO THERMAL SIGNAL</span>
+                        <div id="thermalTarget"
+                            class="hidden absolute w-12 h-12 rounded-full thermal-view animate-pulse flex items-center justify-center border border-yellow-300">
+                            <span class="text-[8px] font-bold text-white">36.8°C</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACOUSTIC WAVE SPECTRUM -->
+                <div class="bg-slate-900/90 border border-sky-900/40 rounded-lg p-2.5 flex flex-col justify-between">
+                    <div class="flex justify-between items-center mb-1 text-[10px]">
+                        <span class="text-sky-400 font-bold">🔊 D1 AUDIO SPECTRUM (320Hz Filter)</span>
+                        <span id="audioStatus" class="text-slate-500">MUTE</span>
+                    </div>
+                    <div class="h-28 bg-slate-950 rounded border border-slate-800 p-2 flex items-end justify-between gap-1"
+                        id="audioBars">
+                        <!-- Audio bars dynamically generated -->
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- RIGHT PANEL: SENSOR FUSION & AI AGENT COMMAND (5 Cols) -->
+        <div class="lg:col-span-5 flex flex-col gap-3">
+
+            <!-- INDIVIDUAL SENSORS PREDICTION CARDS -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-3">
+                <h2 class="text-[11px] font-bold text-sky-400 tracking-wider mb-2 uppercase">📡 Multi-Sensor Telemetry &
+                    Depth Predictions</h2>
+
+                <div class="space-y-2">
+
+                    <!-- SOUND SENSOR (D1) -->
+                    <div class="bg-slate-950 p-2 rounded border border-sky-900/60 flex justify-between items-center">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-sky-400">🎤 D1 Acoustic (Sound)</span>
+                                <span id="s1Tag"
+                                    class="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">OFFLINE</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Pattern: <span id="s1Pattern"
+                                    class="text-slate-200">--</span> | Freq: <span id="s1Freq" class="text-slate-200">--
+                                    Hz</span></p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[9px] text-slate-400 block">Confidence</span>
+                            <span id="s1Score" class="text-sm font-bold text-sky-400">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- THERMAL SENSOR (D2) -->
+                    <div class="bg-slate-950 p-2 rounded border border-orange-900/60 flex justify-between items-center">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-orange-400">🌡️ D2 Thermal (Heat)</span>
+                                <span id="s2Tag"
+                                    class="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">OFFLINE</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Heat Sign: <span id="s2Sign"
+                                    class="text-slate-200">--</span> | Temp: <span id="s2Temp" class="text-slate-200">--
+                                    °C</span></p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[9px] text-slate-400 block">Confidence</span>
+                            <span id="s2Score" class="text-sm font-bold text-orange-400">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- SEISMIC SENSOR (D3) -->
+                    <div class="bg-slate-950 p-2 rounded border border-yellow-900/60 flex justify-between items-center">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-yellow-400">📳 D3 Seismic (Ground)</span>
+                                <span id="s3Tag"
+                                    class="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">OFFLINE</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Depth penetration: <span
+                                    class="text-amber-400 font-bold">20ft</span> | Pulse: <span id="s3Pulse"
+                                    class="text-slate-200">--</span></p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[9px] text-slate-400 block">Confidence</span>
+                            <span id="s3Score" class="text-sm font-bold text-yellow-400">0%</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- QUANTUM FUSION GRAPH & SCORE -->
+                <div
+                    class="mt-2.5 bg-slate-950 border border-emerald-900/50 p-2 rounded flex justify-between items-center">
+                    <div>
+                        <span class="text-[9px] text-slate-400 uppercase font-bold block">Edge-AI Fusion Index</span>
+                        <span class="text-xs font-bold text-slate-200">Target: Sector B4</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[9px] text-slate-400 block">Fusion Confidence</span>
+                        <span id="fusionScore" class="text-base font-black text-emerald-400">0%</span>
+                    </div>
+                    <div class="text-right pl-3 border-l border-slate-800">
+                        <span class="text-[9px] text-slate-400 block">Priority</span>
+                        <span id="priorityBadge" class="text-sm font-black text-slate-600">P-0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI VOICE AGENT COMMAND CENTER -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-3 flex-1 flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-emerald-400 tracking-wider flex items-center gap-1">🤖 AI
+                            SWARM DISPATCHER</span>
+                        <span class="text-[9px] text-slate-400">Voice Guided</span>
+                    </div>
+
+                    <!-- Chat Console Log -->
+                    <div id="aiConsole"
+                        class="bg-slate-950 p-2 rounded border border-slate-800 h-28 overflow-y-auto text-[11px] font-sans space-y-1 text-slate-300">
+                        <p class="text-emerald-400"><b>AI Agent:</b> System initialized. Type <i>"Deploy"</i> or click
+                            the button to trigger autonomous search pathing.</p>
+                    </div>
+                </div>
+
+                <!-- Input Box -->
+                <div class="flex gap-2 mt-2">
+                    <input type="text" id="aiInput" placeholder="Command AI Agent..."
+                        class="flex-1 bg-slate-950 border border-slate-800 rounded px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-sky-500 font-sans">
+                    <button id="sendBtn"
+                        class="bg-sky-600 hover:bg-sky-500 text-white font-bold px-3 py-1 rounded text-xs transition">Send</button>
+                    <button id="voiceBtn"
+                        class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-2.5 py-1 rounded text-xs transition">🎤</button>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        // 1. MAP INITIALIZATION (OpenStreetMap)
+        const baseLat = 13.0827;
+        const baseLng = 80.2707;
+
+        const map = L.map('map').setView([baseLat, baseLng], 16);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Command Base Marker
+        L.marker([baseLat, baseLng]).addTo(map).bindPopup("<b>COMMAND BASE</b><br>Swarm HQ").openPopup();
+
+        let dronePathLine = null;
+        let targetMarker = null;
+
+        // 2. GENERATE AUDIO SPECTRUM BARS SIMULATION
+        const audioContainer = document.getElementById('audioBars');
+        for (let i = 0; i < 20; i++) {
+            const bar = document.createElement('div');
+            bar.className = "w-full bg-sky-900 rounded-t transition-all duration-300";
+            bar.style.height = "10%";
+            bar.id = `bar-${i}`;
+            audioContainer.appendChild(bar);
+        }
+
+        function animateAudio(active) {
+            for (let i = 0; i < 20; i++) {
+                const bar = document.getElementById(`bar-${i}`);
+                if (active) {
+                    const height = Math.floor(Math.random() * 85) + 15;
+                    bar.style.height = `${height}%`;
+                    bar.className = "w-full bg-sky-400 rounded-t transition-all duration-200";
+                } else {
+                    bar.style.height = "10%";
+                    bar.className = "w-full bg-sky-900/50 rounded-t";
+                }
+            }
+        }
+
+        // 3. AI VOICE & CHAT LOGIC
+        function logAI(sender, text) {
+            const consoleBox = document.getElementById('aiConsole');
+            const color = sender === 'User' ? 'text-sky-400' : 'text-emerald-400';
+            consoleBox.innerHTML += `<p class="${color}"><b>${sender}:</b> ${text}</p>`;
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+        }
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                const msg = new SpeechSynthesisUtterance(text);
+                window.speechSynthesis.speak(msg);
+            }
+        }
+
+        // 4. AUTONOMOUS SWARM DEPLOYMENT
+        let audioInterval = null;
+
+        function deploySwarm() {
+            logAI('AI Agent', 'Initiating A* Pathfinding... Drones D1, D2, D3 deployed.');
+            speak('Deploying autonomous drone swarm.');
+
+            const targetLat = baseLat + 0.0025;
+            const targetLng = baseLng + 0.0020;
+
+            // Draw Flight Path Line
+            const pathCoordinates = [
+                [baseLat, baseLng],
+                [baseLat + 0.001, baseLng + 0.0005],
+                [baseLat + 0.0018, baseLng + 0.0012],
+                [targetLat, targetLng]
+            ];
+
+            if (dronePathLine) map.removeLayer(dronePathLine);
+            dronePathLine = L.polyline(pathCoordinates, { color: '#38bdf8', weight: 3, dashArray: '6, 6' }).addTo(map);
+
+            // Start Audio Visualizer
+            document.getElementById('audioStatus').innerText = "LIVE (320Hz)";
+            document.getElementById('audioStatus').className = "text-sky-400 font-bold animate-pulse";
+            audioInterval = setInterval(() => animateAudio(true), 150);
+
+            // Step 1: Acoustic Sensor Detection
+            setTimeout(() => {
+                document.getElementById('s1Tag').innerText = "VOICE DETECTED";
+                document.getElementById('s1Tag').className = "text-[9px] px-1.5 py-0.2 rounded bg-sky-950 text-sky-400 font-bold";
+                document.getElementById('s1Pattern').innerText = "Human Distress Call";
+                document.getElementById('s1Freq').innerText = "320 Hz";
+                document.getElementById('s1Score').innerText = "88%";
+                logAI('D1 Sound', 'Acoustic frequency matched at 320Hz.');
+            }, 1200);
+
+            // Step 2: Thermal Sensor Verification
+            setTimeout(() => {
+                document.getElementById('s2Tag').innerText = "HEAT VERIFIED";
+                document.getElementById('s2Tag').className = "text-[9px] px-1.5 py-0.2 rounded bg-orange-950 text-orange-400 font-bold";
+                document.getElementById('s2Sign').innerText = "Human Infrared";
+                document.getElementById('s2Temp').innerText = "36.8 °C";
+                document.getElementById('s2Score').innerText = "91%";
+
+                // Show Thermal Camera Stream Target
+                document.getElementById('thermalPlaceholder').classList.add('hidden');
+                document.getElementById('thermalTarget').classList.remove('hidden');
+                document.getElementById('thermalStatus').innerText = "LOCK ON";
+                document.getElementById('thermalStatus').className = "text-orange-400 font-bold animate-pulse";
+
+                logAI('D2 Thermal', 'Thermal signature locked at 36.8°C.');
+            }, 2400);
+
+            // Step 3: Seismic Sub-surface Pulse
+            setTimeout(() => {
+                document.getElementById('s3Tag').innerText = "PULSE CONFIRMED";
+                document.getElementById('s3Tag').className = "text-[9px] px-1.5 py-0.2 rounded bg-yellow-950 text-yellow-400 font-bold";
+                document.getElementById('s3Pulse').innerText = "Rhythmic Tapping";
+                document.getElementById('s3Score').innerText = "94%";
+                logAI('D3 Seismic', 'Ground vibration pulse verified at 20ft depth.');
+            }, 3600);
+
+            // Step 4: Sensor Fusion Calculation & Target Pinning
+            setTimeout(() => {
+                document.getElementById('fusionScore').innerText = "94%";
+                document.getElementById('priorityBadge').innerText = "P1 CRITICAL";
+                document.getElementById('priorityBadge').className = "text-sm font-black text-red-500 animate-pulse";
+
+                targetMarker = L.marker([targetLat, targetLng])
+                    .addTo(map)
+                    .bindPopup("🚨 <b>SURVIVOR LOCATED</b><br>Multi-Sensor Confidence: 94%<br>Priority: P1")
+                    .openPopup();
+
+                map.flyTo([targetLat, targetLng], 17);
+
+                const finalMsg = "Survivor pinpointed in Sector B4 with 94% multi-sensor fusion score. Priority P1 assigned!";
+                logAI('AI Agent', finalMsg);
+                speak(finalMsg);
+            }, 4800);
+        }
+
+        // Reset Function
+        function resetAll() {
+            if (dronePathLine) map.removeLayer(dronePathLine);
+            if (targetMarker) map.removeLayer(targetMarker);
+            if (audioInterval) clearInterval(audioInterval);
+            animateAudio(false);
+
+            document.getElementById('audioStatus').innerText = "MUTE";
+            document.getElementById('audioStatus').className = "text-slate-500";
+
+            document.getElementById('thermalPlaceholder').classList.remove('hidden');
+            document.getElementById('thermalTarget').classList.add('hidden');
+            document.getElementById('thermalStatus').innerText = "STANDBY";
+            document.getElementById('thermalStatus').className = "text-slate-500";
+
+            document.getElementById('s1Tag').innerText = "OFFLINE";
+            document.getElementById('s1Tag').className = "text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400";
+            document.getElementById('s1Score').innerText = "0%";
+
+            document.getElementById('s2Tag').innerText = "OFFLINE";
+            document.getElementById('s2Tag').className = "text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400";
+            document.getElementById('s2Score').innerText = "0%";
+
+            document.getElementById('s3Tag').innerText = "OFFLINE";
+            document.getElementById('s3Tag').className = "text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400";
+            document.getElementById('s3Score').innerText = "0%";
+
+            document.getElementById('fusionScore').innerText = "0%";
+            document.getElementById('priorityBadge').innerText = "P-0";
+            document.getElementById('priorityBadge').className = "text-sm font-black text-slate-600";
+
+            map.setView([baseLat, baseLng], 16);
+            logAI('AI Agent', 'System reset complete.');
+        }
+
+        // Event Handlers
+        document.getElementById('deployBtn').addEventListener('click', deploySwarm);
+        document.getElementById('resetBtn').addEventListener('click', resetAll);
+
+        document.getElementById('sendBtn').addEventListener('click', () => {
+            const input = document.getElementById('aiInput');
+            const val = input.value.trim();
+            if (!val) return;
+
+            logAI('User', val);
+            input.value = '';
+
+            if (val.toLowerCase().includes('deploy') || val.toLowerCase().includes('start')) {
+                deploySwarm();
+            } else if (val.toLowerCase().includes('reset')) {
+                resetAll();
+            } else {
+                logAI('AI Agent', 'Type "Deploy" to launch autonomous pathing scan.');
+            }
+        });
+
+        document.getElementById('voiceBtn').addEventListener('click', () => {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Use Google Chrome for voice inputs.");
+                return;
+            }
+            const rec = new SpeechRecognition();
+            rec.onresult = (e) => {
+                document.getElementById('aiInput').value = e.results[0][0].transcript;
+                document.getElementById('sendBtn').click();
+            };
+            rec.start();
+        });
+    </script>
+
+</body>
+
+</html>
